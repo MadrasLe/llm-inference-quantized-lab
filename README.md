@@ -60,9 +60,9 @@ For high-end infrastructure:
 
 Install dependencies:
 
-´´´bash
+```bash
 pip install -r requirements.txt
-´´´
+```
 
 
 The script is flexible. You can run it with the default model (ERNIE) or specify any other Hugging Face ID.
@@ -71,34 +71,35 @@ The script is flexible. You can run it with the default model (ERNIE) or specify
 
 Loads the default model (baidu/ERNIE-4.5-21B-A3B-Thinking) and starts the chat.
 
-´´´bash
+```bash
 python cli.py
-´´´
+```
+
 2. Running a Different Model
 
 Example running Llama 3 8B:
 
 
-´´´bash
+```bash
 python cli.py --model "meta-llama/Meta-Llama-3-8B-Instruct"
-´´´
+```
 
 3. Customizing Personality (System Prompt)
 
 Define how the AI should behave from the start:
 
-´´´bash
+```bash
 python cli.py --system "You are a senior Python expert who answers concisely."
-´´´
+```
 
 4. Help and Arguments
 
 To see all available options:
 
 
-´´´bash
+```bash
 python cli.py --help
-´´´
+```
 
 
 
