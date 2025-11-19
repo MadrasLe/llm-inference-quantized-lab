@@ -11,8 +11,6 @@ Features:
 - Greedy decoding loop (streaming)
 - Tokens-per-second benchmark
 - CLI interface for any prompt / model / params
-
-Author: Gabriel (ETL_DatasetNLP)
 """
 
 import argparse
@@ -38,7 +36,7 @@ def get_args():
                    help="User input prompt")
 
     p.add_argument("--system", type=str,
-                   default="Você é um assistente útil.",
+                   default="You are a helpful assistant.",
                    help="System message for chat template")
 
     p.add_argument("--max-tokens", type=int,
@@ -108,9 +106,9 @@ def main():
     prompt_len = input_ids.shape[1]
 
     print("Generating...\n")
-    texto_decodificado_anterior = ""
+    previous_decoded_text = ""
 
-    tokens_gerados = 0
+    generated_tokens = 0
     t0 = time.time()
 
     with torch.no_grad():
@@ -121,28 +119,28 @@ def main():
             next_id = torch.argmax(next_logits, dim=-1).unsqueeze(-1)
 
             input_ids = torch.cat([input_ids, next_id], dim=-1)
-            tokens_gerados += 1
+            generated_tokens += 1
 
             # Decode only newly generated text
-            novos_tokens = input_ids[0][prompt_len:]
-            texto = tokenizer.decode(novos_tokens, skip_special_tokens=True)
+            new_tokens_only = input_ids[0][prompt_len:]
+            current_text = tokenizer.decode(new_tokens_only, skip_special_tokens=True)
 
-            diff = texto[len(texto_decodificado_anterior):]
+            diff = current_text[len(previous_decoded_text):]
             print(diff, end="", flush=True)
 
-            texto_decodificado_anterior = texto
+            previous_decoded_text = current_text
 
             if next_id.item() == eos:
                 break
 
     t1 = time.time()
     elapsed = t1 - t0
-    tps = tokens_gerados / elapsed if elapsed > 0 else 0
+    tps = generated_tokens / elapsed if elapsed > 0 else 0
 
     print("\n\n===================================")
-    print(f"Tokens gerados: {tokens_gerados}")
-    print(f"Tempo total:    {elapsed:.2f} s")
-    print(f"Velocidade:     {tps:.2f} tokens/s")
+    print(f"Tokens generated: {generated_tokens}")
+    print(f"Total time:       {elapsed:.2f} s")
+    print(f"Speed:            {tps:.2f} tokens/s")
     print("===================================\n")
 
 
