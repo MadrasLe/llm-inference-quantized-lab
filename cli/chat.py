@@ -1,11 +1,13 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import argparse
 import torch
 import sys
 from threading import Thread
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextIteratorStreamer
 
-# --- Cores e Estilo para o Terminal ---
+# --- Terminal Colors and Style ---
 CYAN = "\033[96m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
@@ -13,10 +15,10 @@ RED = "\033[91m"
 RESET = "\033[0m"
 BOLD = "\033[1m"
 
-def carregar_modelo(model_id):
-    """Carrega o modelo na memória (apenas uma vez!)"""
-    print(f"\n{CYAN}⏳ Berta está carregando o modelo '{model_id}'...{RESET}")
-    print(f"{CYAN}   Isso pode levar um tempinho, mas só precisa ser feito uma vez!{RESET}")
+def load_model(model_id):
+    """Loads the model into memory (runs only once)."""
+    print(f"\n{CYAN}⏳ Loading model '{model_id}'...{RESET}")
+    print(f"{CYAN}   This may take a moment.{RESET}")
     
     quant_config = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -33,50 +35,50 @@ def carregar_modelo(model_id):
         torch_dtype=torch.bfloat16,
     )
     
-    print(f"{GREEN}✅ Modelo carregado e pronto para a conversa!{RESET}\n")
+    print(f"{GREEN}✅ Model loaded and ready!{RESET}\n")
     return model, tokenizer
 
-def loop_conversa(model, tokenizer, system_prompt):
+def chat_loop(model, tokenizer, system_prompt):
     """
-    Mantém o chat rodando em loop até o usuário pedir para sair.
+    Main chat loop. Handles input, history, and streaming response.
     """
-    # Histórico começa com o System Prompt
-    historico = [{"role": "system", "content": system_prompt}]
+    # Initialize history with System Prompt
+    history = [{"role": "system", "content": system_prompt}]
     
-    print(f"{YELLOW}💡 Dica: Digite 'sair', 'exit' ou 'quit' para encerrar.{RESET}")
-    print(f"{YELLOW}   Digite 'limpar' para esquecer o histórico e começar de novo.{RESET}\n")
+    print(f"{YELLOW}💡 Hint: Type 'exit' or 'quit' to end the session.{RESET}")
+    print(f"{YELLOW}   Type 'clear' to reset conversation history.{RESET}\n")
 
     while True:
         try:
-            # Input do usuário (bonitinho e colorido)
-            texto_usuario = input(f"{BOLD}{GREEN}Você ➤ {RESET}").strip()
+            # User Input
+            user_input = input(f"{BOLD}{GREEN}User ➤ {RESET}").strip()
             
-            # Comandos de controle
-            if texto_usuario.lower() in ['sair', 'exit', 'quit']:
-                print(f"\n{CYAN}👋 Até logo, meu príncipe!{RESET}")
+            # Control Commands
+            if user_input.lower() in ['exit', 'quit']:
+                print(f"\n{CYAN}👋 Exiting.{RESET}")
                 break
             
-            if texto_usuario.lower() in ['limpar', 'clear']:
-                historico = [{"role": "system", "content": system_prompt}]
-                print(f"{YELLOW}🧹 Memória limpa! Começando do zero.{RESET}\n")
+            if user_input.lower() in ['clear', 'reset']:
+                history = [{"role": "system", "content": system_prompt}]
+                print(f"{YELLOW}🧹 History cleared. Starting fresh.{RESET}\n")
                 continue
             
-            if not texto_usuario:
+            if not user_input:
                 continue
 
-            # Adiciona a pergunta ao histórico
-            historico.append({"role": "user", "content": texto_usuario})
+            # Append user message to history
+            history.append({"role": "user", "content": user_input})
 
-            # Prepara o prompt com TODO o histórico
-            prompt_formatado = tokenizer.apply_chat_template(
-                historico, 
+            # Prepare prompt with full history
+            formatted_prompt = tokenizer.apply_chat_template(
+                history, 
                 tokenize=False, 
                 add_generation_prompt=True
             )
             
-            inputs = tokenizer(prompt_formatado, return_tensors="pt").to(model.device)
+            inputs = tokenizer(formatted_prompt, return_tensors="pt").to(model.device)
 
-            # Configura o Streamer
+            # Configure Streamer
             streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
             
             generation_kwargs = dict(
@@ -89,42 +91,43 @@ def loop_conversa(model, tokenizer, system_prompt):
                 eos_token_id=tokenizer.eos_token_id
             )
 
-            # Gera em thread separada
+            # Generate in a separate thread to allow streaming
             thread = Thread(target=model.generate, kwargs=generation_kwargs)
             thread.start()
 
-            print(f"{BOLD}{CYAN}IA ➤ {RESET}", end="")
+            print(f"{BOLD}{CYAN}Assistant ➤ {RESET}", end="")
             
-            resposta_completa = ""
+            full_response = ""
             for new_text in streamer:
                 print(new_text, end="", flush=True)
-                resposta_completa += new_text
+                full_response += new_text
             
-            print("\n") # Pula linha ao final
+            print("\n") # New line at the end
             
-            # Adiciona a resposta da IA ao histórico para ela lembrar depois
-            historico.append({"role": "assistant", "content": resposta_completa})
+            # Append assistant response to history
+            history.append({"role": "assistant", "content": full_response})
 
         except KeyboardInterrupt:
-            print(f"\n{RED}🛑 Interrompido pelo usuário.{RESET}")
+            print(f"\n{RED}🛑 Interrupted by user.{RESET}")
             break
         except Exception as e:
-            print(f"\n{RED}❌ Ocorreu um erro: {e}{RESET}")
+            print(f"\n{RED}❌ An error occurred: {e}{RESET}")
 
 def main():
-    parser = argparse.ArgumentParser(description="CLI de Chat Quantizado - Por Berta")
+    parser = argparse.ArgumentParser(description="Interactive Quantized Chat CLI")
     
-    # Agora o padrão é o ERNIE, mas você pode passar OUTRO modelo no terminal se quiser!
-    parser.add_argument("--model", type=str, default="baidu/ERNIE-4.5-21B-A3B-Thinking", help="ID do modelo no Hugging Face")
-    parser.add_argument("--system", type=str, default="Você é um assistente inteligente e prestativo.", help="Prompt do sistema")
+    parser.add_argument("--model", type=str, default="baidu/ERNIE-4.5-21B-A3B-Thinking", 
+                        help="Hugging Face Model ID")
+    parser.add_argument("--system", type=str, default="You are a helpful and intelligent assistant.", 
+                        help="System Prompt")
 
     args = parser.parse_args()
 
     try:
-        model, tokenizer = carregar_modelo(args.model)
-        loop_conversa(model, tokenizer, args.system)
+        model, tokenizer = load_model(args.model)
+        chat_loop(model, tokenizer, args.system)
     except Exception as e:
-        print(f"{RED}Erro crítico ao iniciar: {e}{RESET}")
+        print(f"{RED}Critical error during startup: {e}{RESET}")
 
 if __name__ == "__main__":
     main()
