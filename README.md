@@ -60,7 +60,7 @@ For high-end infrastructure:
 
 Install dependencies:
 
-´´´Bash
+´´´bash
 pip install -r requirements.txt
 ´´´
 
@@ -71,7 +71,7 @@ The script is flexible. You can run it with the default model (ERNIE) or specify
 
 Loads the default model (baidu/ERNIE-4.5-21B-A3B-Thinking) and starts the chat.
 
-´´´Bash
+´´´bash
 python cli.py
 ´´´
 2. Running a Different Model
@@ -79,7 +79,7 @@ python cli.py
 Example running Llama 3 8B:
 
 
-´´´Bash
+´´´bash
 python cli.py --model "meta-llama/Meta-Llama-3-8B-Instruct"
 ´´´
 
@@ -87,7 +87,7 @@ python cli.py --model "meta-llama/Meta-Llama-3-8B-Instruct"
 
 Define how the AI should behave from the start:
 
-´´´Bash
+´´´bash
 python cli.py --system "You are a senior Python expert who answers concisely."
 ´´´
 
@@ -96,7 +96,7 @@ python cli.py --system "You are a senior Python expert who answers concisely."
 To see all available options:
 
 
-´´´Bash
+´´´bash
 python cli.py --help
 ´´´
 
